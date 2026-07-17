@@ -1,0 +1,25 @@
+[project]
+name = "trend-scout"
+version = "0.1.0"
+description = "Multi-agent research digest: LangGraph orchestrator-workers pipeline with LLM-as-a-judge quality gate."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=0.2",
+    "langchain-openai>=0.2",
+    "pydantic>=2.7",
+    "feedparser>=6.0",
+    "ddgs",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+trend-scout = "trend_scout.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
