@@ -1,0 +1,34 @@
+Web search failed for query 'latest MCP protocol developments backend systems'
+Traceback (most recent call last):
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/src/trend_scout/tools.py", line 67, in web_search
+    results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
+                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 466, in news
+    return self._search_sync("news", query, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 454, in _search_sync
+    raise DDGSException(err or "No results found.")
+ddgs.exceptions.DDGSException: No results found.
+Web search failed for query 'LangGraph agent framework Python examples'
+Traceback (most recent call last):
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/src/trend_scout/tools.py", line 67, in web_search
+    results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
+                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 466, in news
+    return self._search_sync("news", query, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 454, in _search_sync
+    raise DDGSException(err or "No results found.")
+ddgs.exceptions.DDGSException: No results found.
+--- pipeline events ---
+  planner: 6 queries
+  researcher: 46 rss + search -> 51 unique items
+  curator: picked 5 items
+  writer: draft #0 ready
+  judge: relevance=5 grounding=5 format=5 avg=5.00
+
+--- token usage ---
+LLM calls:         4
+prompt tokens:     10106
+completion tokens: 1464
+estimated cost:    $0.0064 (gpt-4.1-mini)

@@ -1,0 +1,21 @@
+=== step 1: judge on forged draft (deterministic guardrail) ===
+scores: 1/1/1
+feedback: Digest links to URLs that are not in the source items (possible hallucination): ['https://totally-legit-news.example.com/agentic']. Use only exact source URLs.
+
+=== step 2: router decision -> revise ===
+
+=== step 3: writer revises the draft ===
+# Дайджест для backend Python інженера
+
+Огляд важливих новин про AI-агентів та їх розгортання.
+
+## 1. Least privilege для AI-агентів: Identity, access, and tool binding  
+- Суть: Microsoft описує необхідність суворого контролю ідентичності, доступу та прив’язки інструментів для автономних AI-агентів. Це допомагає забезпечити їх безпеку.  
+- Чому важливо: розуміння базових принципів безпеки допоможе правильно налаштувати доступи в AI-системах.  
+- Лінк: [Microsoft](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/)
+
+## 2. Ag ...
+
+=== step 4: judge re-scores the corrected draft ===
+scores: 5/5/5 avg=5.00
+router -> approve

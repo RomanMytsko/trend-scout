@@ -43,7 +43,12 @@ def build_graph():
     return graph.compile()
 
 
-def run_digest(topics: list[str]) -> DigestState:
-    """Convenience entrypoint: run the full pipeline for given topics."""
+def run_digest(topics: list[str], config: dict | None = None) -> DigestState:
+    """Convenience entrypoint: run the full pipeline for given topics.
+
+    :param config: optional LangGraph run config, e.g. ``{"callbacks": [...]}``.
+    """
     app = build_graph()
-    return app.invoke({"topics": topics, "replans": 0, "revisions": 0, "events": []})
+    return app.invoke(
+        {"topics": topics, "replans": 0, "revisions": 0, "events": []}, config=config
+    )

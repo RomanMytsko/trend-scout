@@ -7,6 +7,7 @@ anything is released.
 
 Final project for the robot_dreams **Generative AI Developer** course.
 
+[![CI](https://github.com/RomanMytsko/trend-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/RomanMytsko/trend-scout/actions/workflows/ci.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RomanMytsko/trend-scout/blob/main/notebooks/trend_scout_colab.ipynb)
 
 ## Architecture
@@ -59,7 +60,21 @@ Or open the Colab notebook: [`notebooks/trend_scout_colab.ipynb`](notebooks/tren
 ## Example output
 
 See [`examples/`](examples/) for a real digest produced by the pipeline,
-including the judge scores and the pipeline event log.
+including the judge scores and the pipeline event log. Also there:
+
+- `guardrail_demo.py` — feeds the judge a draft with a hallucinated link and
+  shows the full revise loop: deterministic fail → writer revision → re-score;
+- `measure_cost.py` — tallies real token usage and cost of one full run.
+
+## Tests
+
+Deterministic logic (sanitization, URL allowlist, dedupe, routing) is covered
+by offline unit tests — no LLM calls, run in CI on every push:
+
+```bash
+pip install -e '.[dev]'
+pytest -q
+```
 
 ## Project layout
 
