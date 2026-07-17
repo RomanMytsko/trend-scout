@@ -7,6 +7,8 @@ anything is released.
 
 Final project for the robot_dreams **Generative AI Developer** course.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RomanMytsko/trend-scout/blob/main/notebooks/trend_scout_colab.ipynb)
+
 ## Architecture
 
 ![Pipeline graph](docs/architecture.png)
