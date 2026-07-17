@@ -2,7 +2,7 @@
 
 from trend_scout import nodes, sanitize
 from trend_scout.config import settings
-from trend_scout.schemas import CurationResult, CuratedPick, JudgeVerdict, RawItem
+from trend_scout.schemas import CuratedPick, CurationResult, JudgeVerdict, RawItem
 
 
 def _items(n: int) -> list[RawItem]:

@@ -59,7 +59,16 @@ Or open the Colab notebook: [`notebooks/trend_scout_colab.ipynb`](notebooks/tren
 
 ## Example output
 
-See [`examples/`](examples/) for a real digest produced by the pipeline,
+One item from a real run (2026-07-17, judge scores 5/5/5, ~$0.006 per run):
+
+> **Least privilege for AI agents: Identity, access, and tool binding**
+> - Суть: Microsoft наголошує на важливості суворих контролів ідентичності,
+>   доступу та прив'язки інструментів для автономних AI-агентів.
+> - Чому важливо: впровадження принципу найменших привілеїв допоможе
+>   backend-інженерам захистити багатоагентні системи.
+> - Лінк: [Microsoft](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/)
+
+See [`examples/`](examples/) for the full digest produced by the pipeline,
 including the judge scores and the pipeline event log. Also there:
 
 - `guardrail_demo.py` — feeds the judge a draft with a hallucinated link and
