@@ -50,7 +50,7 @@ FEEDS = feeds_from_env()
 class Settings:
     openai_model: str = os.getenv("OPENAI_CHAT_MODEL", "gpt-4.1-mini")
     embedding_model: str = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
-    days_back: int = int(os.getenv("DAYS_BACK", "7"))
+    days_back: int = int(os.getenv("DAYS_BACK", "1"))
     top_n: int = int(os.getenv("TOP_N", "5"))
     max_revisions: int = int(os.getenv("MAX_REVISIONS", "2"))
     min_items: int = int(os.getenv("MIN_ITEMS", "5"))
@@ -64,6 +64,14 @@ class Settings:
     memory_enabled: bool = os.getenv("MEMORY_ENABLED", "1") == "1"
     memory_dir: str = os.getenv("MEMORY_DIR", ".trend_scout_memory")
     memory_threshold: float = float(os.getenv("MEMORY_THRESHOLD", "0.88"))
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    telegram_channel_id: str = os.getenv("TELEGRAM_CHANNEL_ID", "")
+    post_preview_path: str = os.getenv("POST_PREVIEW_PATH", "telegram_post_preview.html")
+
+    @property
+    def search_timelimit(self) -> str:
+        """DuckDuckGo news recency: last day for daily digests, else week."""
+        return "d" if self.days_back <= 1 else "w"
 
 
 settings = Settings()

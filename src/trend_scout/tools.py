@@ -64,7 +64,9 @@ def web_search(query: str, max_results: int | None = None) -> list[RawItem]:
 
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
+            results = list(
+                ddgs.news(query, max_results=max_results, timelimit=settings.search_timelimit)
+            )
     except Exception:
         logger.warning("Web search failed for query %r", query, exc_info=True)
         return []

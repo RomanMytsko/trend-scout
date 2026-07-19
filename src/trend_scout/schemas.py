@@ -61,6 +61,7 @@ class DigestState(typing.TypedDict, total=False):
     item_embeddings: list[list[float]]
     curation: CurationResult
     digest: str
+    post: str
     verdict: JudgeVerdict
     replans: int
     revisions: int

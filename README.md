@@ -1,9 +1,13 @@
 # Trend Scout
 
-Multi-agent research digest built with **LangGraph**: an orchestrator-workers
-pipeline that researches your topics for the last week, curates the noise away
-and writes a short digest — with an **LLM-as-a-judge** quality gate before
-anything is released.
+Multi-agent daily digest for a Telegram channel, built with **LangGraph**: an
+orchestrator-workers pipeline that researches your topics every day, curates
+the noise away, writes a short digest and posts it to your channel — with an
+**LLM-as-a-judge** quality gate before anything is published.
+
+Telegram delivery works out of the box in dry-run mode (the rendered post is
+saved locally); set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHANNEL_ID` and the same
+pipeline posts to the real channel.
 
 Final project for the robot_dreams **Generative AI Developer** course.
 
@@ -15,10 +19,10 @@ Final project for the robot_dreams **Generative AI Developer** course.
 ![Pipeline graph](docs/architecture.png)
 
 ```
-        planner ──> researcher ──> curator ──> writer ──> judge ──> archive ──> END
-           ^            │                        ^          │
-           └── replan ──┘ (too few items,        └─ revise ─┘ (score < 4.0,
-               max 1)                               max 2 revisions)
+  planner ──> researcher ──> curator ──> writer ──> judge ──> publisher ──> archive ──> END
+     ^            │                        ^          │
+     └── replan ──┘ (too few items,        └─ revise ─┘ (score < 4.0,
+         max 1)                               max 2 revisions)
 ```
 
 | Node       | Type          | Responsibility                                            |
@@ -28,7 +32,8 @@ Final project for the robot_dreams **Generative AI Developer** course.
 | curator    | LLM agent     | Rank/filter candidates for the audience, drop marketing   |
 | writer     | LLM agent     | Compose digest in a strict format; apply judge feedback   |
 | judge      | Guardrail+LLM | URL-allowlist check, then rubric scoring (1–5 × 3)        |
-| archive    | Memory worker | Store delivered stories in ChromaDB after approval        |
+| publisher  | Tool worker   | Render Telegram HTML and post to the channel (or dry-run) |
+| archive    | Memory worker | Store delivered stories in ChromaDB after publication     |
 
 Key engineering decisions:
 
@@ -39,9 +44,9 @@ Key engineering decisions:
 - **Semantic dedupe** — the same story republished by different outlets is
   collapsed to one item: OpenAI embeddings + greedy cosine clustering
   (URL-level dedupe cannot catch cross-outlet duplicates).
-- **Cross-run memory** — approved digests are archived to ChromaDB; next runs
-  drop candidates semantically close to already-delivered stories, so weekly
-  digests do not repeat themselves.
+- **Cross-run memory** — published digests are archived to ChromaDB; next runs
+  drop candidates semantically close to already-delivered stories, so daily
+  posts do not repeat themselves.
 - **Prompt-injection guardrails** — all fetched content is sanitized, rendered
   as `<item>` blocks explicitly marked untrusted, and the final digest may
   only reference URLs that were actually collected (deterministic allowlist,
@@ -61,9 +66,28 @@ cp .env.example .env   # put your OPENAI_API_KEY there
 .venv/bin/trend-scout "vector databases" "RAG evaluation" -o digest.md
 ```
 
-Only `OPENAI_API_KEY` is required — search and RSS tools are keyless.
+Only `OPENAI_API_KEY` is required — search and RSS tools are keyless. Without
+Telegram credentials the publisher runs in dry-run mode and saves the rendered
+post to `telegram_post_preview.html`.
 
 Or open the Colab notebook: [`notebooks/trend_scout_colab.ipynb`](notebooks/trend_scout_colab.ipynb).
+
+## Daily schedule
+
+The pipeline is a single command, so scheduling is one cron line (or a Celery
+beat entry / launchd job):
+
+```cron
+# every day at 08:00
+0 8 * * * cd /path/to/trend-scout && .venv/bin/trend-scout >> digest.log 2>&1
+```
+
+## Telegram channel setup (when ready)
+
+1. Create a channel, add your bot as an admin.
+2. Put `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHANNEL_ID` (e.g. `@my_channel`)
+   into `.env`.
+3. That's it — the same pipeline now posts for real; no code changes.
 
 ## Example output
 

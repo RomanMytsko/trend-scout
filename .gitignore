@@ -9,5 +9,6 @@ __pycache__/
 setup.log
 install.log
 .trend_scout_memory/
+telegram_post_preview.html
 .pytest_cache/
 .ruff_cache/

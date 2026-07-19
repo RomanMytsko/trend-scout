@@ -6,6 +6,7 @@ import logging
 import langchain_openai
 
 from trend_scout import memory, prompts, sanitize, semantic, tools
+from trend_scout import publisher as tg_publisher
 from trend_scout.config import settings
 from trend_scout.schemas import (
     CurationResult,
@@ -179,6 +180,12 @@ def judge(state: DigestState) -> DigestState:
             f"format={verdict.format_score} avg={verdict.average:.2f}"
         ],
     }
+
+
+def publish(state: DigestState) -> DigestState:
+    """Deliver the approved digest to the Telegram channel (dry-run without it)."""
+    event, post = tg_publisher.publish(state["digest"])
+    return {"post": post, "events": [event]}
 
 
 def archive(state: DigestState) -> DigestState:
