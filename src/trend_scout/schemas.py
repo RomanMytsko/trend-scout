@@ -58,6 +58,7 @@ class DigestState(typing.TypedDict, total=False):
     topics: list[str]
     plan: ResearchPlan
     items: list[RawItem]
+    item_embeddings: list[list[float]]
     curation: CurationResult
     digest: str
     verdict: JudgeVerdict

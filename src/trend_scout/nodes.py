@@ -5,7 +5,7 @@ import logging
 
 import langchain_openai
 
-from trend_scout import prompts, sanitize, tools
+from trend_scout import memory, prompts, sanitize, semantic, tools
 from trend_scout.config import settings
 from trend_scout.schemas import (
     CurationResult,
@@ -50,16 +50,43 @@ def planner(state: DigestState) -> DigestState:
 
 
 def researcher(state: DigestState) -> DigestState:
-    """Deterministic worker: execute RSS + web-search tools, dedupe."""
+    """Deterministic worker: tools -> URL dedupe -> semantic dedupe -> memory.
+
+    Semantic steps degrade gracefully: any embedding/Chroma failure keeps the
+    URL-deduped list and the pipeline continues.
+    """
     items: list[RawItem] = tools.fetch_rss()
     rss_count = len(items)
     for query in state["plan"].queries:
         items.extend(tools.web_search(query))
     items = tools.dedupe(items)
-    return {
-        "items": items,
-        "events": [f"researcher: {rss_count} rss + search -> {len(items)} unique items"],
-    }
+    events = [f"researcher: {rss_count} rss + search -> {len(items)} unique items"]
+
+    embeddings: list[list[float]] = []
+    if settings.semantic_dedupe and items:
+        try:
+            embeddings = semantic.embed_items(items)
+            keep = semantic.cluster_keep_indices(embeddings, settings.semantic_threshold)
+            if len(keep) < len(items):
+                events.append(f"researcher: semantic dedupe {len(items)} -> {len(keep)} stories")
+            items = [items[i] for i in keep]
+            embeddings = [embeddings[i] for i in keep]
+        except Exception:
+            logger.warning("Semantic dedupe failed, keeping URL-level dedupe.", exc_info=True)
+            embeddings = []
+
+    if settings.memory_enabled and embeddings:
+        try:
+            keep = memory.filter_unseen_indices(embeddings)
+            dropped = len(items) - len(keep)
+            if dropped:
+                events.append(f"memory: dropped {dropped} already-covered stories")
+            items = [items[i] for i in keep]
+            embeddings = [embeddings[i] for i in keep]
+        except Exception:
+            logger.warning("Memory filter failed, keeping all items.", exc_info=True)
+
+    return {"items": items, "item_embeddings": embeddings, "events": events}
 
 
 def curator(state: DigestState) -> DigestState:
@@ -152,6 +179,24 @@ def judge(state: DigestState) -> DigestState:
             f"format={verdict.format_score} avg={verdict.average:.2f}"
         ],
     }
+
+
+def archive(state: DigestState) -> DigestState:
+    """Persist delivered stories to cross-run memory after judge approval."""
+    if not settings.memory_enabled:
+        return {"events": ["archive: memory disabled"]}
+    embeddings = state.get("item_embeddings") or []
+    if not embeddings:
+        return {"events": ["archive: no embeddings available, skipped"]}
+    picks = state["curation"].picks
+    picked_items = [state["items"][p.index] for p in picks]
+    picked_embeddings = [embeddings[p.index] for p in picks]
+    try:
+        stored = memory.remember(picked_items, picked_embeddings)
+    except Exception:
+        logger.warning("Archiving to memory failed.", exc_info=True)
+        return {"events": ["archive: failed, skipped"]}
+    return {"events": [f"archive: remembered {stored} delivered stories"]}
 
 
 # --- conditional routing ----------------------------------------------------

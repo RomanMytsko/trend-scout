@@ -12,7 +12,7 @@ import logging
 import feedparser
 
 from trend_scout import sanitize
-from trend_scout.config import DEFAULT_FEEDS, settings
+from trend_scout.config import FEEDS, settings
 from trend_scout.schemas import RawItem
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def fetch_rss(days_back: int | None = None) -> list[RawItem]:
     days_back = days_back or settings.days_back
     cutoff = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=days_back)
     items: list[RawItem] = []
-    for source, url in DEFAULT_FEEDS.items():
+    for source, url in FEEDS.items():
         try:
             feed = feedparser.parse(url)
         except Exception:

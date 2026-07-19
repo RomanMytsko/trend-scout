@@ -34,3 +34,14 @@ def test_extract_violating_urls_allows_collected_and_flags_foreign():
 
 def test_extract_violating_urls_empty_digest():
     assert sanitize.extract_violating_urls("no links here", {"https://a.io"}) == []
+
+
+def test_extract_violating_urls_catches_bare_urls():
+    digest = "Дивись також https://evil.example.com/path. І ще [ok](https://a.io/x)"
+    violations = sanitize.extract_violating_urls(digest, {"https://a.io/x"})
+    assert violations == ["https://evil.example.com/path"]
+
+
+def test_extract_violating_urls_dedupes_repeated_violation():
+    digest = "[a](https://evil.io/p) і текстом https://evil.io/p/"
+    assert sanitize.extract_violating_urls(digest, set()) == ["https://evil.io/p"]

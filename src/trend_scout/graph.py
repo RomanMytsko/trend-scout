@@ -1,6 +1,6 @@
 """LangGraph pipeline assembly.
 
-    planner -> researcher -> curator -> writer -> judge -> END
+    planner -> researcher -> curator -> writer -> judge -> archive -> END
                   |  ^                     ^        |
                   v  | (one replan)        | (<= max_revisions)
                replan­-bump                 revise-bump
@@ -22,6 +22,7 @@ def build_graph():
     graph.add_node("writer", nodes.writer)
     graph.add_node("judge", nodes.judge)
     graph.add_node("revise_bump", nodes.bump_revisions)
+    graph.add_node("archive", nodes.archive)
 
     graph.add_edge(START, "planner")
     graph.add_edge("planner", "researcher")
@@ -36,9 +37,10 @@ def build_graph():
     graph.add_conditional_edges(
         "judge",
         nodes.route_after_judge,
-        {"approve": END, "revise": "revise_bump"},
+        {"approve": "archive", "revise": "revise_bump"},
     )
     graph.add_edge("revise_bump", "writer")
+    graph.add_edge("archive", END)
 
     return graph.compile()
 

@@ -15,19 +15,20 @@ Final project for the robot_dreams **Generative AI Developer** course.
 ![Pipeline graph](docs/architecture.png)
 
 ```
-        planner ──> researcher ──> curator ──> writer ──> judge ──> END
+        planner ──> researcher ──> curator ──> writer ──> judge ──> archive ──> END
            ^            │                        ^          │
            └── replan ──┘ (too few items,        └─ revise ─┘ (score < 4.0,
                max 1)                               max 2 revisions)
 ```
 
-| Node       | Type          | Responsibility                                          |
-|------------|---------------|---------------------------------------------------------|
-| planner    | LLM agent     | Decompose topics into diverse search queries            |
-| researcher | Tool worker   | Execute RSS + DuckDuckGo news tools, dedupe             |
-| curator    | LLM agent     | Rank/filter candidates for the audience, drop marketing |
-| writer     | LLM agent     | Compose digest in a strict format; apply judge feedback |
-| judge      | Guardrail+LLM | URL-allowlist check, then rubric scoring (1–5 × 3)      |
+| Node       | Type          | Responsibility                                            |
+|------------|---------------|-----------------------------------------------------------|
+| planner    | LLM agent     | Decompose topics into diverse search queries              |
+| researcher | Tool worker   | RSS + DuckDuckGo news; URL + semantic dedupe, memory gate |
+| curator    | LLM agent     | Rank/filter candidates for the audience, drop marketing   |
+| writer     | LLM agent     | Compose digest in a strict format; apply judge feedback   |
+| judge      | Guardrail+LLM | URL-allowlist check, then rubric scoring (1–5 × 3)        |
+| archive    | Memory worker | Store delivered stories in ChromaDB after approval        |
 
 Key engineering decisions:
 
@@ -35,11 +36,18 @@ Key engineering decisions:
   (`ResearchPlan`, `CurationResult`, `JudgeVerdict`), no free-text parsing.
 - **Two feedback loops** — replan when research is too thin; revise when the
   judge rejects a draft. Both are capped to guarantee termination.
+- **Semantic dedupe** — the same story republished by different outlets is
+  collapsed to one item: OpenAI embeddings + greedy cosine clustering
+  (URL-level dedupe cannot catch cross-outlet duplicates).
+- **Cross-run memory** — approved digests are archived to ChromaDB; next runs
+  drop candidates semantically close to already-delivered stories, so weekly
+  digests do not repeat themselves.
 - **Prompt-injection guardrails** — all fetched content is sanitized, rendered
   as `<item>` blocks explicitly marked untrusted, and the final digest may
-  only link to URLs that were actually collected (deterministic allowlist).
-- **Graceful degradation** — a failing feed or rate-limited search never
-  crashes the pipeline; the researcher works with whatever was collected.
+  only reference URLs that were actually collected (deterministic allowlist,
+  markdown links and bare URLs alike).
+- **Graceful degradation** — a failing feed, rate-limited search or embedding
+  error never crashes the pipeline; each enrichment step falls back cleanly.
 
 ## Quickstart
 
@@ -89,10 +97,12 @@ pytest -q
 
 ```
 src/trend_scout/
-├── config.py     # env-driven settings + curated RSS feeds
+├── config.py     # env-driven settings + configurable RSS feeds
 ├── schemas.py    # Pydantic models + LangGraph state
 ├── sanitize.py   # untrusted-content guardrails
 ├── tools.py      # RSS + DuckDuckGo news workers
+├── semantic.py   # embeddings + greedy cosine clustering
+├── memory.py     # cross-run memory of delivered stories (ChromaDB)
 ├── prompts.py    # all prompts in one place
 ├── nodes.py      # agents + conditional routing
 ├── graph.py      # LangGraph assembly

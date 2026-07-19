@@ -17,7 +17,7 @@ from trend_scout.schemas import RawItem
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
-_MD_LINK_RE = re.compile(r"\]\((https?://[^)\s]+)\)")
+_URL_RE = re.compile(r"https?://[^\s)\]>\"']+")
 
 
 def clean_text(text: str, max_chars: int) -> str:
@@ -40,7 +40,12 @@ def render_items_block(items: list[RawItem]) -> str:
 
 
 def extract_violating_urls(digest_md: str, allowed_urls: set[str]) -> list[str]:
-    """Return markdown-linked URLs that were not present in collected items."""
-    linked = _MD_LINK_RE.findall(digest_md)
+    """Return any URL in the digest (markdown-linked or bare) that was not
+    present in collected items."""
     normalized_allowed = {u.rstrip("/") for u in allowed_urls}
-    return [u for u in linked if u.rstrip("/") not in normalized_allowed]
+    violations: list[str] = []
+    for url in _URL_RE.findall(digest_md):
+        normalized = url.rstrip(".,;:!?").rstrip("/")
+        if normalized not in normalized_allowed and normalized not in violations:
+            violations.append(normalized)
+    return violations

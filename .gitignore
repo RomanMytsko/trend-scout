@@ -8,3 +8,6 @@ __pycache__/
 .ipynb_checkpoints/
 setup.log
 install.log
+.trend_scout_memory/
+.pytest_cache/
+.ruff_cache/
