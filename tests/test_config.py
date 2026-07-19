@@ -22,3 +22,17 @@ def test_feeds_invalid_json_falls_back(monkeypatch):
 def test_feeds_non_dict_falls_back(monkeypatch):
     monkeypatch.setenv("RSS_FEEDS_JSON", '["just", "a", "list"]')
     assert config.feeds_from_env() == config.DEFAULT_FEEDS
+
+
+def test_feeds_without_http_urls_fall_back(monkeypatch):
+    monkeypatch.setenv("RSS_FEEDS_JSON", '{"Local": "file:///etc/passwd"}')
+    assert config.feeds_from_env() == config.DEFAULT_FEEDS
+
+
+def test_invalid_numeric_and_boolean_settings_fall_back(monkeypatch):
+    monkeypatch.setenv("COUNT", "not-a-number")
+    monkeypatch.setenv("THRESHOLD", "9")
+    monkeypatch.setenv("FLAG", "sometimes")
+    assert config._env_int("COUNT", 4, minimum=1) == 4
+    assert config._env_float("THRESHOLD", 0.8, maximum=1.0) == 0.8
+    assert config._env_bool("FLAG", True) is True

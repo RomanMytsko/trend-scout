@@ -10,5 +10,10 @@ setup.log
 install.log
 .trend_scout_memory/
 telegram_post_preview.html
+.trend_scout_delivery.json
+.trend_scout_delivery.json.tmp
 .pytest_cache/
 .ruff_cache/
+dist/
+build/
+.coverage

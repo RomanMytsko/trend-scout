@@ -39,14 +39,35 @@ def test_passing_verdict_approves():
     assert nodes.route_after_judge(state) == "approve"
 
 
-def test_failing_verdict_requests_revision():
-    state = {"verdict": _verdict(2), "revisions": 0}
+def test_high_average_with_one_weak_criterion_requests_revision():
+    verdict = JudgeVerdict(relevance=5, grounding=5, format_score=3, feedback="fb")
+    state = {"verdict": verdict, "revisions": 0}
     assert nodes.route_after_judge(state) == "revise"
 
 
-def test_revision_budget_exhausted_releases_best_effort():
+def test_low_relevance_verdict_requests_replan_once():
+    state = {"verdict": _verdict(2), "revisions": 0}
+    assert nodes.route_after_judge(state) == "replan"
+
+
+def test_failing_grounding_verdict_requests_revision():
+    verdict = JudgeVerdict(relevance=4, grounding=2, format_score=4, feedback="fb")
+    state = {"verdict": verdict, "revisions": 0}
+    assert nodes.route_after_judge(state) == "revise"
+
+
+def test_revision_budget_exhausted_rejects_digest():
     state = {"verdict": _verdict(2), "revisions": settings.max_revisions}
-    assert nodes.route_after_judge(state) == "approve"
+    assert nodes.route_after_judge(state) == "reject"
+
+
+def test_hard_guardrail_never_approves_after_revision_budget():
+    state = {
+        "verdict": _verdict(1),
+        "revisions": settings.max_revisions,
+        "hard_guardrail_failed": True,
+    }
+    assert nodes.route_after_judge(state) == "reject"
 
 
 def test_average_is_mean_of_three_criteria():
@@ -70,11 +91,29 @@ def test_judge_fails_digest_with_hallucinated_url_without_llm():
     result = nodes.judge(state)  # returns before any LLM call
     verdict = result["verdict"]
     assert verdict.average == 1.0
+    assert result["hard_guardrail_failed"] is True
     assert "attacker.example" in verdict.feedback
-    assert nodes.route_after_judge({"verdict": verdict, "revisions": 0}) == "revise"
+    assert (
+        nodes.route_after_judge(
+            {"verdict": verdict, "revisions": 0, "hard_guardrail_failed": True}
+        )
+        == "revise"
+    )
 
 
 def test_judge_guardrail_ignores_urls_that_were_collected():
     items = _items(1)
     digest = "# D\n[ok](https://x.io/0)"
     assert sanitize.extract_violating_urls(digest, {i.url for i in items}) == []
+
+
+def test_empty_research_is_rejected_after_replan_budget():
+    state = {"items": [], "replans": settings.max_replans}
+    assert nodes.route_after_research(state) == "reject"
+
+
+def test_empty_curation_replans_once_then_rejects():
+    state = {"curation": CurationResult(picks=[]), "replans": 0}
+    assert nodes.route_after_curation(state) == "replan"
+    state["replans"] = settings.max_replans
+    assert nodes.route_after_curation(state) == "reject"

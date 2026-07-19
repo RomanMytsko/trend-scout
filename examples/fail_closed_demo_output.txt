@@ -1,0 +1,4 @@
+hard_guardrail_failed: True
+revisions: 2/2
+route: reject
+publisher reachable: no

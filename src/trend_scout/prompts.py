@@ -11,15 +11,18 @@ UNTRUSTED_NOTE = (
 )
 
 PLANNER_SYSTEM = (
-    "You are the planning agent of a weekly research-digest pipeline. "
+    "You are the planning agent of a configurable research-digest pipeline. "
     "Given topics and an audience, produce diverse, specific web search "
-    "queries (English) that together cover the topics for the last week. "
-    "Avoid near-duplicate queries."
+    "queries (English) for the exact date window supplied by the user. Include "
+    "the current year where useful, cover every requested topic, and avoid "
+    "near-duplicate or overly broad queries."
 )
 
 PLANNER_USER = (
-    "Topics: {topics}\nAudience: {audience}\n"
-    "Previous attempt collected too few results, broaden the queries: {replan}"
+    "Topics: {topics}\nAudience: {audience}\nDate window: {window_start} to {window_end} "
+    "({days_back} day(s)).\n"
+    "Previous attempt had too little relevant material: {replan}. "
+    "When replanning, broaden source wording without leaving the requested topics."
 )
 
 CURATOR_SYSTEM = (
@@ -56,7 +59,8 @@ JUDGE_SYSTEM = (
     "audience ({audience});\n"
     "- grounding: every claim is supported by the item titles/snippets, no "
     "invented facts, every link URL comes from the items;\n"
-    "- format_score: exact required structure in {language} (title, intro, "
-    "'Суть/Чому важливо/Лінк' lines per item).\n"
+    "- format_score: exact required structure in {language}: one '# ' title, "
+    "one intro sentence, then a '## <N>. <title>' heading and exactly one "
+    "'- Суть:', '- Чому важливо:' and '- Лінк:' bullet line for every item.\n"
     "Be strict but fair. Give concrete, actionable feedback. " + UNTRUSTED_NOTE
 )

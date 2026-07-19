@@ -9,8 +9,8 @@ persistent client under ``settings.memory_dir`` is used.
 """
 
 import functools
+import hashlib
 import logging
-import uuid
 
 import chromadb
 
@@ -63,8 +63,8 @@ def remember(
     if not items:
         return 0
     collection = _collection(client)
-    collection.add(
-        ids=[str(uuid.uuid4()) for _ in items],
+    collection.upsert(
+        ids=[hashlib.sha256(item.url.rstrip("/").lower().encode()).hexdigest() for item in items],
         embeddings=embeddings,
         metadatas=[{"url": item.url, "title": item.title} for item in items],
     )

@@ -1,0 +1,27 @@
+Final hardened notebook run, 2026-07-19.
+
+Execution:
+  code cells: 9/9
+  notebook errors: 0
+
+Pipeline:
+  planner: 6 queries
+  researcher: 26 RSS + 12 search -> 36 unique items
+  curator: picked 5 items
+  writer: draft #0 ready
+  judge: relevance=5 grounding=5 format=4 avg=4.67
+  every judge criterion >= 4.0: true
+  hard guardrail failed: false
+  publisher: preview saved (Telegram channel not configured)
+  archive: skipped (delivery status preview)
+
+Memory proof in a separate ephemeral collection:
+  before remember: [0, 1, 2, 3, 4]
+  after remember:  []
+
+Notes:
+  - One DDG query returned no results; RSS and the remaining queries allowed
+    the run to complete, demonstrating graceful degradation.
+  - The acceptance contract requires every judge criterion, not only the
+    average, to meet the configured 4.0 floor.
+  - Preview mode intentionally does not mutate delivered-story memory.

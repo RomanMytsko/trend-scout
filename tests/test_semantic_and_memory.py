@@ -45,5 +45,12 @@ def test_memory_filters_previously_delivered_stories(client):
     assert keep == [1]  # A_CLOSE matches the remembered story, B is new
 
 
+def test_memory_remember_is_idempotent_by_url(client):
+    items = [RawItem(title="story", url="https://x.io/1", source="s")]
+    memory.remember(items, [A], client=client)
+    memory.remember(items, [A_CLOSE], client=client)
+    assert client.get_collection(memory.COLLECTION).count() == 1
+
+
 def test_memory_remember_empty_is_noop(client):
     assert memory.remember([], [], client=client) == 0
