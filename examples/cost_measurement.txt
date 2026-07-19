@@ -1,36 +1,7 @@
-Web search failed for query 'latest MCP protocol updates backend systems'
-Traceback (most recent call last):
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/src/trend_scout/tools.py", line 67, in web_search
-    results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
-                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 466, in news
-    return self._search_sync("news", query, **kwargs)
-           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 454, in _search_sync
-    raise DDGSException(err or "No results found.")
-ddgs.exceptions.DDGSException: No results found.
-Web search failed for query 'LangGraph agent framework Python integration'
-Traceback (most recent call last):
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/src/trend_scout/tools.py", line 67, in web_search
-    results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
-                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 466, in news
-    return self._search_sync("news", query, **kwargs)
-           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 454, in _search_sync
-    raise DDGSException(err or "No results found.")
-ddgs.exceptions.DDGSException: No results found.
-Web search failed for query 'multi-agent orchestration best practices 2024 backend development Python environment'
-Traceback (most recent call last):
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/src/trend_scout/tools.py", line 67, in web_search
-    results = list(ddgs.news(query, max_results=max_results, timelimit="w"))
-                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 466, in news
-    return self._search_sync("news", query, **kwargs)
-           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/roman/Desktop/rm_repos/robodreams/trend-scout/.venv/lib/python3.14/site-packages/ddgs/ddgs.py", line 454, in _search_sync
-    raise DDGSException(err or "No results found.")
-ddgs.exceptions.DDGSException: No results found.
+Real full-pipeline run, 2026-07-19 (weekly window, DAYS_BACK=7).
+Two DDG queries were rate-limited mid-run - the pipeline degraded
+gracefully and continued on RSS + remaining queries.
+
 --- pipeline events ---
   planner: 6 queries
   researcher: 46 rss + search -> 53 unique items
@@ -38,6 +9,7 @@ ddgs.exceptions.DDGSException: No results found.
   curator: picked 5 items
   writer: draft #0 ready
   judge: relevance=5 grounding=5 format=4 avg=4.67
+  publisher: dry-run (channel not configured), post saved to telegram_post_preview.html
   archive: remembered 5 delivered stories
 
 --- token usage ---
@@ -45,3 +17,6 @@ LLM calls:         4
 prompt tokens:     9971
 completion tokens: 1554
 estimated cost:    $0.0065 (gpt-4.1-mini)
+
+Embeddings (semantic dedupe + memory): ~5K tokens, text-embedding-3-small,
+adds ~$0.0001 - negligible next to chat calls.

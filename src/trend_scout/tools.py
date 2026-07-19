@@ -33,8 +33,8 @@ def fetch_rss(days_back: int | None = None) -> list[RawItem]:
     for source, url in FEEDS.items():
         try:
             feed = feedparser.parse(url)
-        except Exception:
-            logger.warning("RSS fetch failed for %s", source, exc_info=True)
+        except Exception as exc:  # expected degradation, keep the log short
+            logger.warning("RSS fetch failed for %s: %s", source, exc)
             continue
         for entry in feed.entries:
             published = _entry_datetime(entry)
@@ -67,8 +67,8 @@ def web_search(query: str, max_results: int | None = None) -> list[RawItem]:
             results = list(
                 ddgs.news(query, max_results=max_results, timelimit=settings.search_timelimit)
             )
-    except Exception:
-        logger.warning("Web search failed for query %r", query, exc_info=True)
+    except Exception as exc:  # rate limits are routine, a one-line warning is enough
+        logger.warning("Web search failed for query %r: %s", query, exc)
         return []
 
     return [

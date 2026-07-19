@@ -1,7 +1,0 @@
---- pipeline events ---
-  planner: 6 queries
-  researcher: 31 rss + search -> 40 unique items
-  curator: picked 5 items
-  writer: draft #0 ready
-  judge: relevance=5 grounding=5 format=5 avg=5.00
---- judge: relevance=5 grounding=5 format=5 avg=5.00 ---

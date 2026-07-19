@@ -91,17 +91,19 @@ beat entry / launchd job):
 
 ## Example output
 
-One item from a real run (2026-07-17, judge scores 5/5/5, ~$0.006 per run):
+One item from a real daily run (2026-07-19; the judge rejected the first
+draft 3.67, the writer revised it, second pass approved at 4.67; measured
+cost $0.0065 per run):
 
-> **Least privilege for AI agents: Identity, access, and tool binding**
-> - Суть: Microsoft наголошує на важливості суворих контролів ідентичності,
->   доступу та прив'язки інструментів для автономних AI-агентів.
-> - Чому важливо: впровадження принципу найменших привілеїв допоможе
->   backend-інженерам захистити багатоагентні системи.
-> - Лінк: [Microsoft](https://www.microsoft.com/en-us/security/blog/2026/07/16/least-privilege-for-ai-agents-identity-access-and-tool-binding/)
+> **I burned all my tokens researching how to save tokens**
+> - Суть: стаття описує створення кастомного deep research pipeline для
+>   оптимізації використання токенів.
+> - Чому важливо: керування контекстом і вартістю — щоденна задача
+>   backend-інженера, що працює з LLM.
+> - Лінк: [Hacker News](https://news.ycombinator.com/)
 
-See [`examples/`](examples/) for the full digest produced by the pipeline,
-including the judge scores and the pipeline event log. Also there:
+See [`examples/`](examples/) for real pipeline runs: daily and weekly
+digests, the rendered Telegram post, judge scores and event logs. Also there:
 
 - `guardrail_demo.py` — feeds the judge a draft with a hallucinated link and
   shows the full revise loop: deterministic fail → writer revision → re-score;
