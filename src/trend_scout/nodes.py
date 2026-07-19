@@ -1,5 +1,7 @@
 """Graph nodes (agents) and conditional routing functions."""
 
+import concurrent.futures
+import datetime
 import functools
 import logging
 
@@ -24,8 +26,17 @@ def _llm() -> langchain_openai.ChatOpenAI:
     return langchain_openai.ChatOpenAI(model=settings.openai_model, temperature=0)
 
 
+@functools.lru_cache(maxsize=1)
+def _judge_llm() -> langchain_openai.ChatOpenAI:
+    return langchain_openai.ChatOpenAI(model=settings.judge_model, temperature=0)
+
+
 def _structured(schema: type):
     return _llm().with_structured_output(schema)
+
+
+def _judge_structured(schema: type):
+    return _judge_llm().with_structured_output(schema)
 
 
 # --- agents -----------------------------------------------------------------
@@ -34,6 +45,8 @@ def _structured(schema: type):
 def planner(state: DigestState) -> DigestState:
     """LLM agent: decompose topics into concrete search queries."""
     replan = state.get("replans", 0) > 0
+    window_end = datetime.datetime.now(tz=datetime.timezone.utc).date()
+    window_start = window_end - datetime.timedelta(days=settings.days_back)
     plan: ResearchPlan = _structured(ResearchPlan).invoke(
         [
             ("system", prompts.PLANNER_SYSTEM),
@@ -42,6 +55,9 @@ def planner(state: DigestState) -> DigestState:
                 prompts.PLANNER_USER.format(
                     topics="; ".join(state["topics"]),
                     audience=settings.audience,
+                    window_start=window_start.isoformat(),
+                    window_end=window_end.isoformat(),
+                    days_back=settings.days_back,
                     replan="yes" if replan else "no",
                 ),
             ),
@@ -56,12 +72,22 @@ def researcher(state: DigestState) -> DigestState:
     Semantic steps degrade gracefully: any embedding/Chroma failure keeps the
     URL-deduped list and the pipeline continues.
     """
-    items: list[RawItem] = tools.fetch_rss()
+    queries = state["plan"].queries
+    max_workers = min(settings.search_workers, len(queries) + 1)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        rss_future = executor.submit(tools.fetch_rss)
+        search_futures = [executor.submit(tools.web_search, query) for query in queries]
+        items: list[RawItem] = rss_future.result()
+        search_batches = [future.result() for future in search_futures]
+
     rss_count = len(items)
-    for query in state["plan"].queries:
-        items.extend(tools.web_search(query))
+    search_count = sum(len(batch) for batch in search_batches)
+    for batch in search_batches:
+        items.extend(batch)
     items = tools.dedupe(items)
-    events = [f"researcher: {rss_count} rss + search -> {len(items)} unique items"]
+    events = [
+        f"researcher: {rss_count} rss + {search_count} search -> {len(items)} unique items"
+    ]
 
     embeddings: list[list[float]] = []
     if settings.semantic_dedupe and items:
@@ -92,6 +118,8 @@ def researcher(state: DigestState) -> DigestState:
 
 def curator(state: DigestState) -> DigestState:
     """LLM agent: rank and filter candidates for the audience."""
+    if not state.get("items"):
+        return {"curation": CurationResult(picks=[]), "events": ["curator: no items to rank"]}
     curation: CurationResult = _structured(CurationResult).invoke(
         [
             (
@@ -105,7 +133,12 @@ def curator(state: DigestState) -> DigestState:
             ("user", sanitize.render_items_block(state["items"])),
         ]
     )
-    valid = [p for p in curation.picks if 0 <= p.index < len(state["items"])]
+    valid = []
+    seen_indexes: set[int] = set()
+    for pick in curation.picks:
+        if 0 <= pick.index < len(state["items"]) and pick.index not in seen_indexes:
+            valid.append(pick)
+            seen_indexes.add(pick.index)
     curation = CurationResult(picks=valid[: settings.top_n])
     return {"curation": curation, "events": [f"curator: picked {len(curation.picks)} items"]}
 
@@ -144,19 +177,29 @@ def judge(state: DigestState) -> DigestState:
     """Deterministic guardrail + LLM-as-a-judge rubric scoring."""
     picked = [state["items"][p.index] for p in state["curation"].picks]
     bad_urls = sanitize.extract_violating_urls(state["digest"], {i.url for i in picked})
-    if bad_urls:
+    format_violations = sanitize.validate_digest_structure(state["digest"], len(picked))
+    if bad_urls or format_violations:
+        failures = []
+        if bad_urls:
+            failures.append(
+                "Digest links to URLs that are not in the source items "
+                f"(possible hallucination): {bad_urls}. Use only exact source URLs."
+            )
+        if format_violations:
+            failures.append("Deterministic format violations: " + "; ".join(format_violations))
         verdict = JudgeVerdict(
             relevance=1,
             grounding=1,
             format_score=1,
-            feedback=(
-                "Digest links to URLs that are not in the source items "
-                f"(possible hallucination): {bad_urls}. Use only exact source URLs."
-            ),
+            feedback=" ".join(failures),
         )
-        return {"verdict": verdict, "events": ["judge: FAILED url allowlist guardrail"]}
+        return {
+            "verdict": verdict,
+            "hard_guardrail_failed": True,
+            "events": ["judge: FAILED deterministic guardrail"],
+        }
 
-    verdict = _structured(JudgeVerdict).invoke(
+    verdict = _judge_structured(JudgeVerdict).invoke(
         [
             (
                 "system",
@@ -175,6 +218,7 @@ def judge(state: DigestState) -> DigestState:
     )
     return {
         "verdict": verdict,
+        "hard_guardrail_failed": False,
         "events": [
             f"judge: relevance={verdict.relevance} grounding={verdict.grounding} "
             f"format={verdict.format_score} avg={verdict.average:.2f}"
@@ -184,12 +228,34 @@ def judge(state: DigestState) -> DigestState:
 
 def publish(state: DigestState) -> DigestState:
     """Deliver the approved digest to the Telegram channel (dry-run without it)."""
-    event, post = tg_publisher.publish(state["digest"])
-    return {"post": post, "events": [event]}
+    result = tg_publisher.publish(state["digest"])
+    return {
+        "post": result.post_html,
+        "delivery_status": result.status,
+        "events": [result.event],
+    }
+
+
+def reject(state: DigestState) -> DigestState:
+    """Fail closed: keep an optional preview but never send or archive it."""
+    digest = state.get("digest", "")
+    result: DigestState = {
+        "delivery_status": "blocked",
+        "events": ["quality_gate: BLOCKED, nothing was published or archived"],
+    }
+    if digest:
+        post = tg_publisher.to_telegram_html(digest)
+        path = tg_publisher.save_preview(post, settings.post_preview_path)
+        result["post"] = post
+        result["events"] = [f"quality_gate: BLOCKED, preview saved to {path}"]
+    return result
 
 
 def archive(state: DigestState) -> DigestState:
     """Persist delivered stories to cross-run memory after judge approval."""
+    delivery_status = state.get("delivery_status", "failed")
+    if delivery_status != "sent":
+        return {"events": [f"archive: skipped (delivery status {delivery_status})"]}
     if not settings.memory_enabled:
         return {"events": ["archive: memory disabled"]}
     embeddings = state.get("item_embeddings") or []
@@ -213,23 +279,52 @@ def route_after_research(state: DigestState) -> str:
     """Not enough material -> one replan with broader queries, else curate."""
     if len(state.get("items", [])) >= settings.min_items:
         return "curator"
-    if state.get("replans", 0) >= 1:
-        logger.warning("Few items even after replan, proceeding anyway.")
-        return "curator"
+    if state.get("replans", 0) >= settings.max_replans:
+        if state.get("items"):
+            logger.warning("Few items even after replan, asking the curator to assess them.")
+            return "curator"
+        logger.warning("No items found after the replan budget was exhausted.")
+        return "reject"
     return "replan"
 
 
+def route_after_curation(state: DigestState) -> str:
+    """Require enough curated signal; otherwise replan once or fail closed."""
+    picks = state.get("curation", CurationResult(picks=[])).picks
+    if len(picks) >= min(settings.min_curated_items, settings.top_n):
+        return "writer"
+    if state.get("replans", 0) < settings.max_replans:
+        return "replan"
+    if picks:
+        logger.warning("Only %s relevant items after replan; proceeding to the judge.", len(picks))
+        return "writer"
+    return "reject"
+
+
 def bump_replans(state: DigestState) -> DigestState:
-    return {"replans": state.get("replans", 0) + 1, "events": ["router: replanning"]}
+    return {
+        "replans": state.get("replans", 0) + 1,
+        "revisions": 0,
+        "events": ["router: replanning for more relevant sources"],
+    }
 
 
 def route_after_judge(state: DigestState) -> str:
-    """Approve, or send back to writer until max_revisions is exhausted."""
-    if state["verdict"].average >= settings.judge_threshold:
+    """Approve only a passing draft; otherwise replan, revise, or reject."""
+    verdict = state["verdict"]
+    if not state.get("hard_guardrail_failed", False) and verdict.passes(
+        settings.judge_threshold
+    ):
         return "approve"
     if state.get("revisions", 0) >= settings.max_revisions:
-        logger.warning("Max revisions reached, releasing best-effort digest.")
-        return "approve"
+        logger.warning("Max revisions reached; blocking the digest.")
+        return "reject"
+    if (
+        not state.get("hard_guardrail_failed", False)
+        and verdict.relevance < settings.judge_threshold
+        and state.get("replans", 0) < settings.max_replans
+    ):
+        return "replan"
     return "revise"
 
 

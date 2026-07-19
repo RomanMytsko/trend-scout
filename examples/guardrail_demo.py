@@ -70,7 +70,9 @@ def main() -> None:
     print(f"scores: {verdict.relevance}/{verdict.grounding}/{verdict.format_score}")
     print(f"feedback: {verdict.feedback}\n")
 
-    route = nodes.route_after_judge({"verdict": verdict, "revisions": 0})
+    route = nodes.route_after_judge(
+        {"verdict": verdict, "revisions": 0, "hard_guardrail_failed": True}
+    )
     print(f"=== step 2: router decision -> {route} ===\n")
     state.update(result)
     state.update(nodes.bump_revisions(state))
@@ -84,7 +86,16 @@ def main() -> None:
     verdict = result["verdict"]
     print(f"scores: {verdict.relevance}/{verdict.grounding}/{verdict.format_score} "
           f"avg={verdict.average:.2f}")
-    print(f"router -> {nodes.route_after_judge({'verdict': verdict, 'revisions': 1})}")
+    print(
+        "router ->",
+        nodes.route_after_judge(
+            {
+                "verdict": verdict,
+                "revisions": 1,
+                "hard_guardrail_failed": result["hard_guardrail_failed"],
+            }
+        ),
+    )
 
 
 if __name__ == "__main__":

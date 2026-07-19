@@ -1,22 +1,22 @@
 [project]
 name = "trend-scout"
-version = "0.1.0"
+version = "0.3.0"
 description = "Daily AI digest for a Telegram channel: LangGraph orchestrator-workers pipeline with LLM-as-a-judge quality gate."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
-    "langgraph>=0.2",
-    "langchain-openai>=0.2",
-    "pydantic>=2.7",
-    "feedparser>=6.0",
-    "chromadb>=0.5",
-    "ddgs",
-    "python-dotenv>=1.0",
+    "langgraph>=1.0,<2",
+    "langchain-openai>=1.0,<2",
+    "pydantic>=2.7,<3",
+    "feedparser>=6.0,<7",
+    "chromadb>=1.0,<2",
+    "ddgs>=9,<10",
+    "python-dotenv>=1.0,<2",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["build>=1", "pytest>=8", "ruff>=0.6"]
 
 [tool.ruff]
 line-length = 120

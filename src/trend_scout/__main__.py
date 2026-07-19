@@ -14,7 +14,7 @@ DEFAULT_TOPICS = [
 ]
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(prog="trend-scout", description=__doc__)
     parser.add_argument("topics", nargs="*", default=DEFAULT_TOPICS)
     parser.add_argument("-o", "--out", help="Write digest markdown to this file.")
@@ -37,13 +37,25 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    delivery_status = state.get("delivery_status", "failed")
+    if delivery_status in {"blocked", "failed"}:
+        print(
+            f"Run did not produce a deliverable digest (delivery status: {delivery_status}).",
+            file=sys.stderr,
+        )
+        return 1
+
     digest = state.get("digest", "")
+    if not digest:
+        print("Run completed without a digest.", file=sys.stderr)
+        return 1
     print(digest)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:
             fh.write(digest)
         print(f"\nSaved to {args.out}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

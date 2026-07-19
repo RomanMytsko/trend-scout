@@ -51,6 +51,10 @@ class JudgeVerdict(pydantic.BaseModel):
     def average(self) -> float:
         return (self.relevance + self.grounding + self.format_score) / 3
 
+    def passes(self, threshold: float) -> bool:
+        """Require every quality dimension to meet the configured floor."""
+        return min(self.relevance, self.grounding, self.format_score) >= threshold
+
 
 class DigestState(typing.TypedDict, total=False):
     """Shared LangGraph state passed between nodes."""
@@ -63,6 +67,8 @@ class DigestState(typing.TypedDict, total=False):
     digest: str
     post: str
     verdict: JudgeVerdict
+    hard_guardrail_failed: bool
+    delivery_status: typing.Literal["sent", "preview", "failed", "blocked"]
     replans: int
     revisions: int
     events: typing.Annotated[list[str], operator.add]

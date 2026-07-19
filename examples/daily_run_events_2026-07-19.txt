@@ -1,0 +1,21 @@
+Real daily run captured on 2026-07-19 before the submission-hardening patch.
+The trace is retained as evidence that judge feedback changed the next draft.
+
+--- pipeline events ---
+  planner: 6 queries
+  researcher: 20 rss + search -> 20 unique items
+  curator: picked 5 items
+  writer: draft #0 ready
+  judge: relevance=4 grounding=4 format=3 avg=3.67
+  router: revision requested
+  writer: draft #1 ready
+  judge: relevance=5 grounding=5 format=4 avg=4.67
+  publisher: dry-run (channel not configured), post saved to telegram_post_preview.html
+  archive: remembered 5 delivered stories
+
+--- submission-hardening note ---
+Current code no longer treats a dry-run as delivery, so the final event is now:
+  archive: skipped (delivery status preview)
+
+Current code also fails closed: a below-threshold or hard-guardrail result after
+the configured revision budget ends at reject and never reaches publisher.

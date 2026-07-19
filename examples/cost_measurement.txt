@@ -1,4 +1,4 @@
-Real full-pipeline run, 2026-07-19 (weekly window, DAYS_BACK=7).
+Real baseline full-pipeline run, 2026-07-19 (weekly window, DAYS_BACK=7).
 Two DDG queries were rate-limited mid-run - the pipeline degraded
 gracefully and continued on RSS + remaining queries.
 
@@ -10,7 +10,7 @@ gracefully and continued on RSS + remaining queries.
   writer: draft #0 ready
   judge: relevance=5 grounding=5 format=4 avg=4.67
   publisher: dry-run (channel not configured), post saved to telegram_post_preview.html
-  archive: remembered 5 delivered stories
+  archive: skipped (delivery status preview)
 
 --- token usage ---
 LLM calls:         4
@@ -20,3 +20,6 @@ estimated cost:    $0.0065 (gpt-4.1-mini)
 
 Embeddings (semantic dedupe + memory): ~5K tokens, text-embedding-3-small,
 adds ~$0.0001 - negligible next to chat calls.
+
+This was a no-revision baseline. A run that consumes the bounded replan and
+revision budgets can make up to 12 chat-model calls and costs more.

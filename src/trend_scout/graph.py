@@ -1,9 +1,9 @@
 """LangGraph pipeline assembly.
 
     planner -> researcher -> curator -> writer -> judge -> publisher -> archive -> END
-                  |  ^                     ^        |
-                  v  | (one replan)        | (<= max_revisions)
-               replan­-bump                 revise-bump
+         ^           |          |          ^         |
+         |________ replan ______|          |__ revise|
+                                      reject -> END
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -24,25 +24,36 @@ def build_graph():
     graph.add_node("revise_bump", nodes.bump_revisions)
     graph.add_node("publisher", nodes.publish)
     graph.add_node("archive", nodes.archive)
+    graph.add_node("reject", nodes.reject)
 
     graph.add_edge(START, "planner")
     graph.add_edge("planner", "researcher")
     graph.add_conditional_edges(
         "researcher",
         nodes.route_after_research,
-        {"curator": "curator", "replan": "replan_bump"},
+        {"curator": "curator", "replan": "replan_bump", "reject": "reject"},
     )
     graph.add_edge("replan_bump", "planner")
-    graph.add_edge("curator", "writer")
+    graph.add_conditional_edges(
+        "curator",
+        nodes.route_after_curation,
+        {"writer": "writer", "replan": "replan_bump", "reject": "reject"},
+    )
     graph.add_edge("writer", "judge")
     graph.add_conditional_edges(
         "judge",
         nodes.route_after_judge,
-        {"approve": "publisher", "revise": "revise_bump"},
+        {
+            "approve": "publisher",
+            "revise": "revise_bump",
+            "replan": "replan_bump",
+            "reject": "reject",
+        },
     )
     graph.add_edge("revise_bump", "writer")
     graph.add_edge("publisher", "archive")
     graph.add_edge("archive", END)
+    graph.add_edge("reject", END)
 
     return graph.compile()
 

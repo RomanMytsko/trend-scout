@@ -32,9 +32,14 @@ def render_items_block(items: list[RawItem]) -> str:
     """Render candidates as numbered blocks of untrusted data for prompts."""
     blocks = []
     for i, item in enumerate(items):
+        source = html.escape(item.source, quote=True)
+        published = html.escape(item.published or "n/a", quote=True)
+        title = html.escape(item.title, quote=True)
+        url = html.escape(item.url, quote=True)
+        snippet = html.escape(item.snippet, quote=True)
         blocks.append(
-            f'<item index="{i}" source="{item.source}" published="{item.published or "n/a"}">\n'
-            f"title: {item.title}\nurl: {item.url}\nsnippet: {item.snippet}\n</item>"
+            f'<item index="{i}" source="{source}" published="{published}">\n'
+            f"title: {title}\nurl: {url}\nsnippet: {snippet}\n</item>"
         )
     return "\n".join(blocks)
 
@@ -48,4 +53,28 @@ def extract_violating_urls(digest_md: str, allowed_urls: set[str]) -> list[str]:
         normalized = url.rstrip(".,;:!?").rstrip("/")
         if normalized not in normalized_allowed and normalized not in violations:
             violations.append(normalized)
+    return violations
+
+
+def validate_digest_structure(digest_md: str, expected_items: int) -> list[str]:
+    """Return deterministic violations of the required digest structure."""
+    lines = [line.strip() for line in digest_md.splitlines() if line.strip()]
+    if not lines or not lines[0].startswith("# ") or lines[0].startswith("## "):
+        return ["digest must start with a level-one '# ' title"]
+
+    section_starts = [i for i, line in enumerate(lines) if re.match(r"^##\s+\d+\.\s+", line)]
+    violations: list[str] = []
+    if len(section_starts) != expected_items:
+        violations.append(
+            f"expected {expected_items} numbered item sections, found {len(section_starts)}"
+        )
+    if expected_items and (not section_starts or section_starts[0] < 2):
+        violations.append("digest must contain an intro sentence before the first item")
+
+    for number, start in enumerate(section_starts, 1):
+        end = section_starts[number] if number < len(section_starts) else len(lines)
+        section = lines[start + 1 : end]
+        for label in ("- Суть:", "- Чому важливо:", "- Лінк:"):
+            if sum(line.startswith(label) for line in section) != 1:
+                violations.append(f"item {number} must contain exactly one '{label}' line")
     return violations
